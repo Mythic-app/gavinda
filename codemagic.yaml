@@ -1,0 +1,37 @@
+workflows:
+  android-debug-build:
+    name: Mythic Android Debug Build
+    max_build_duration: 60
+    environment:
+      java: 17
+      vars:
+        GEMINI_API_KEY: $GEMINI_API_KEY
+        SUPABASE_URL: $SUPABASE_URL
+        SUPABASE_KEY: $SUPABASE_KEY
+    scripts:
+      - name: Create .env file
+        script: |
+          echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
+          echo "SUPABASE_URL=$SUPABASE_URL" >> .env
+          echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
+      - name: Download gradle-wrapper.jar
+        script: |
+          curl -L "https://github.com/google/iosched/raw/main/gradle/wrapper/gradle-wrapper.jar" -o gradle/wrapper/gradle-wrapper.jar
+          ls -lh gradle/wrapper/gradle-wrapper.jar
+          chmod +x gradlew
+      - name: Create debug keystore
+        script: |
+          keytool -genkeypair -v \
+            -keystore debug.keystore \
+            -alias androiddebugkey \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -storepass android \
+            -keypass android \
+            -dname "CN=Android Debug,O=Android,C=US"
+      - name: Build debug APK
+        script: |
+          ./gradlew assembleDebug --stacktrace
+    artifacts:
+      - app/build/outputs/apk/debug/app-debug.apk
