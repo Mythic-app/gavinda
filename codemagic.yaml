@@ -14,13 +14,21 @@ workflows:
           echo "GEMINI_API_KEY=$GEMINI_API_KEY" > .env
           echo "SUPABASE_URL=$SUPABASE_URL" >> .env
           echo "SUPABASE_KEY=$SUPABASE_KEY" >> .env
+
       - name: Setup Gradle wrapper
         script: |
           mkdir -p gradle/wrapper
+
+          # Download real gradle-wrapper.jar from official Gradle GitHub
           curl -L --retry 5 \
             "https://github.com/gradle/gradle/raw/v8.14.1/gradle/wrapper/gradle-wrapper.jar" \
             -o gradle/wrapper/gradle-wrapper.jar
+
+          # Verify jar is valid
+          echo "JAR size:"
           ls -lh gradle/wrapper/gradle-wrapper.jar
+
+          # Write gradle-wrapper.properties
           cat > gradle/wrapper/gradle-wrapper.properties << 'PROPS'
 distributionBase=GRADLE_USER_HOME
 distributionPath=wrapper/dists
@@ -30,9 +38,14 @@ validateDistributionUrl=true
 zipStoreBase=GRADLE_USER_HOME
 zipStorePath=wrapper/dists
 PROPS
+
+          echo "Properties file:"
           cat gradle/wrapper/gradle-wrapper.properties
+
+          # Make gradlew executable
           chmod +x gradlew
-          echo "Setup complete"
+          echo "Gradle wrapper setup complete"
+
       - name: Create debug keystore
         script: |
           keytool -genkeypair -v \
@@ -44,8 +57,16 @@ PROPS
             -storepass android \
             -keypass android \
             -dname "CN=Android Debug,O=Android,C=US"
+          echo "Keystore created"
+          ls -lh debug.keystore
+
       - name: Build debug APK
         script: |
-          ./gradlew assembleDebug --stacktrace
+          # Disable config cache to avoid CI issues
+          ./gradlew assembleDebug \
+            --no-configuration-cache \
+            --no-daemon \
+            --stacktrace
+
     artifacts:
       - app/build/outputs/apk/debug/app-debug.apk
